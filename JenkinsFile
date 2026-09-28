@@ -1,0 +1,38 @@
+pipeline {
+    agent { label 'windows' }
+
+    options {
+        timestamps()
+    }
+
+    environment {
+        CI = 'true'
+        DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Restore') {
+            steps {
+                bat 'dotnet restore OrangeHRM.Tests.csproj'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                bat 'dotnet test OrangeHRM.Tests.csproj --configuration Release --logger "trx;LogFileName=results.trx" --results-directory "TestResults"'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'TestResults/**/*.trx', allowEmptyArchive: true
+        }
+    }
+}

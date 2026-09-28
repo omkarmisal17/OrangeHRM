@@ -1,0 +1,35 @@
+trigger:
+- main
+
+pool:
+  vmImage: windows-latest
+
+steps:
+- checkout: self
+
+- task: UseDotNet@2
+  displayName: Use .NET 10 SDK
+  inputs:
+    packageType: sdk
+    version: 10.0.x
+
+- script: dotnet restore OrangeHRM.Tests.csproj
+  displayName: Restore packages
+
+- script: >
+    dotnet test OrangeHRM.Tests.csproj
+    --configuration Release
+    --logger "trx;LogFileName=test-results.trx"
+    --results-directory "$(Agent.TempDirectory)/TestResults"
+  displayName: Run tests
+  env:
+    CI: 'true'
+
+- task: PublishTestResults@2
+  displayName: Publish test results
+  condition: succeededOrFailed()
+  inputs:
+    testResultsFormat: VSTest
+    searchFolder: '$(Agent.TempDirectory)/TestResults'
+    testResultsFiles: '**/*.trx'
+    failTaskOnFailedTests: true
